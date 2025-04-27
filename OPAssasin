@@ -1,0 +1,288 @@
+getgenv().HBE = true -- HBE Variable, use this to control whether the hitboxes are active or not.
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local function GetCharParent()
+    local charParent
+    repeat wait() until LocalPlayer.Character
+    for _, char in pairs(workspace:GetDescendants()) do
+        if string.find(char.Name, LocalPlayer.Name) and char:FindFirstChild("Humanoid") then
+            charParent = char.Parent
+            break
+        end
+    end
+    return charParent
+end
+
+
+-- pcall to avoid the script breaking on low level executors (e.g. Solara or any Xeno paste)
+pcall(function()
+    local mt = getrawmetatable(game)
+    setreadonly(mt, false)
+    local old = mt.__index
+    mt.__index = function(Self, Key)
+        if tostring(Self) == "HumanoidRootPart" and tostring(Key) == "Size" then
+            return Vector3.new(2,2,1)
+        end
+        return old(Self, Key)
+    end
+    setreadonly(mt, true)
+end)
+
+
+local CHAR_PARENT = GetCharParent()
+local HITBOX_SIZE = Vector3.new(15,15,15) -- Default size. You can let the user choose with a slider. e.g. HITBOX_SIZE = Vector3.new(Value, Value, Value)
+local HITBOX_COLOUR = Color3.fromRGB(255,0,0) -- Default colour (RGB)
+
+
+local function AssignHitboxes(player)
+    if player == LocalPlayer then return end
+
+    local hitbox_connection;
+    hitbox_connection = game:GetService("RunService").RenderStepped:Connect(function()
+        local char = CHAR_PARENT:FindFirstChild(player.Name)
+        if getgenv().HBE then
+            if char and char:FindFirstChild("HumanoidRootPart") and (char.HumanoidRootPart.Size ~= HITBOX_SIZE or char.HumanoidRootPart.Color ~= HITBOX_COLOUR) then
+                char.HumanoidRootPart.Size = HITBOX_SIZE
+                char.HumanoidRootPart.Color = HITBOX_COLOUR
+                char.HumanoidRootPart.CanCollide = false
+                char.HumanoidRootPart.Transparency = 0.5
+            end
+        else
+            hitbox_connection:Disconnect()
+            char.HumanoidRootPart.Size = Vector3.new(2,2,1)
+            char.HumanoidRootPart.Transparency = 1
+        end
+    end)
+end
+
+local colourTable = {
+    Green = "",
+    Blue = "",
+    Red = Color3.fromRGB(255, 0, 0),
+    Yellow = "",
+    Orange = "",
+    Purple = ""
+}
+
+local colChosen = colourTable.Red
+_G.ESPToggle = false
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+
+local function getCharacter(player)
+    return Workspace:FindFirstChild(player.Name)
+end
+
+local function addHighlightToCharacter(player, character)
+    if player == LocalPlayer then return end
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if humanoidRootPart and not humanoidRootPart:FindFirstChild("Highlight") then
+        local highlightClone = Instance.new("Highlight")
+        highlightClone.Name = "Highlight"
+        highlightClone.Adornee = character
+        highlightClone.Parent = humanoidRootPart
+        highlightClone.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        highlightClone.FillColor = colChosen
+        highlightClone.OutlineColor = Color3.fromRGB(255, 255, 255)
+        highlightClone.FillTransparency = 0.5
+    end
+end
+
+local function removeHighlightFromCharacter(character)
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if humanoidRootPart then
+        local highlightInstance = humanoidRootPart:FindFirstChild("Highlight")
+        if highlightInstance then
+            highlightInstance:Destroy()
+        end
+    end
+end
+
+local function updateHighlights()
+    for _, player in pairs(Players:GetPlayers()) do
+        local character = getCharacter(player)
+        if character then
+            if _G.ESPToggle then
+                addHighlightToCharacter(player, character)
+            else
+                removeHighlightFromCharacter(character)
+            end
+        end
+    end
+end
+
+RunService.RenderStepped:Connect(function()
+    updateHighlights()
+end)
+
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function(character)
+        if _G.ESPToggle then
+            addHighlightToCharacter(player, character)
+        end
+    end)
+end)
+
+Players.PlayerRemoving:Connect(function(playerRemoved)
+    local character = playerRemoved.Character
+    if character then
+        removeHighlightFromCharacter(character)
+    end
+end)
+
+
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+ 
+local Window = Rayfield:CreateWindow({
+   Name = "🎅 FestiveScripts | Assassin 🎄",
+   LoadingTitle = "🔪 Assassin Script",
+   LoadingSubtitle = "by FestiveScripts",
+   ConfigurationSaving = {
+      Enabled = false,
+      FolderName = nil, -- Create a custom folder for your hub/game
+      FileName = "Festive MM2 Script"
+   },
+   Discord = {
+      Enabled = true,
+      Invite = "wYeBGSNeee", -- The Discord invite code, do not include discord.gg/. E.g. discord.gg/ABCD would be ABCD
+      RememberJoins = false -- Set this to false to make them join the discord every time they load it up
+   },
+   KeySystem = true, -- Set this to true to use our key system
+   KeySettings = {
+      Title = "Key | MM2",
+      Subtitle = "Key System",
+      Note = "Key In Discord Server",
+      FileName = "FestiveScriptsMurderMystery2Script", -- It is recommended to use something unique as other scripts using Rayfield may overwrite your key file
+      SaveKey = true, -- The user's key will be saved, but if you change the key, they will be unable to use your script
+      GrabKeyFromSite = true, -- If this is true, set Key below to the RAW site you would like Rayfield to get the key from
+      Key = {"https://pastebin.com/raw/VzbeQVU8"} -- List of keys that will be accepted by the system, can be RAW file links (pastebin, github etc) or simple strings ("hello","key22")
+   }
+})
+ 
+local MainTab = Window:CreateTab("🏠 Home", nil) -- Title, Image
+local MainSection = MainTab:CreateSection("Main")
+ 
+Rayfield:Notify({
+   Title = "You executed the script",
+   Content = "Very cool gui",
+   Duration = 5,
+   Image = 13047715178,
+   Actions = { -- Notification Buttons
+      Ignore = {
+         Name = "Okay!",
+         Callback = function()
+         print("The user tapped Okay!")
+      end
+   },
+},
+})
+ 
+local Button = MainTab:CreateButton({
+   Name = "Infinite Jump Toggle",
+   Callback = function()
+       --Toggles the infinite jump between on or off on every script run
+_G.infinjump = not _G.infinjump
+ 
+if _G.infinJumpStarted == nil then
+	--Ensures this only runs once to save resources
+	_G.infinJumpStarted = true
+ 
+	--Notifies readiness
+	game.StarterGui:SetCore("SendNotification", {Title="Youtube Hub"; Text="Infinite Jump Activated!"; Duration=5;})
+ 
+	--The actual infinite jump
+	local plr = game:GetService('Players').LocalPlayer
+	local m = plr:GetMouse()
+	m.KeyDown:connect(function(k)
+		if _G.infinjump then
+			if k:byte() == 32 then
+			humanoid = game:GetService'Players'.LocalPlayer.Character:FindFirstChildOfClass('Humanoid')
+			humanoid:ChangeState('Jumping')
+			wait()
+			humanoid:ChangeState('Seated')
+			end
+		end
+	end)
+end
+   end,
+})
+ 
+local Slider = MainTab:CreateSlider({
+   Name = "WalkSpeed Slider",
+   Range = {1, 350},
+   Increment = 1,
+   Suffix = "Speed",
+   CurrentValue = 16,
+   Flag = "sliderws", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Value)
+        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = (Value)
+   end,
+})
+ 
+local Slider = MainTab:CreateSlider({
+   Name = "JumpPower Slider",
+   Range = {1, 350},
+   Increment = 1,
+   Suffix = "Speed",
+   CurrentValue = 16,
+   Flag = "sliderjp", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Value)
+        game.Players.LocalPlayer.Character.Humanoid.JumpPower = (Value)
+   end,
+})
+ 
+local Input = MainTab:CreateInput({
+   Name = "Walkspeed",
+   PlaceholderText = "1-500",
+   RemoveTextAfterFocusLost = true,
+   Callback = function(Text)
+        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = (Text)
+   end,
+})
+ 
+local OtherSection = MainTab:CreateSection("Other")
+ 
+local Toggle = MainTab:CreateToggle({
+   Name = "Auto Farm",
+   CurrentValue = false,
+   Flag = "Toggle1", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Value)
+        print("FARMING")
+   end,
+})
+ 
+local Tab = Window:CreateTab("🔪 Combat", nil) -- Title, Image
+local Toggle = Tab:CreateToggle({
+    Name = "HBE",
+    CurrentValue = false,
+    Flag = "X",
+    Callback = function(Value)
+        getgenv().HBE = Value
+        if Value then
+            for _, player in ipairs(Players:GetPlayers()) do
+                AssignHitboxes(player)
+            end
+        end
+    end,
+})
+
+local Toggle = Tab:CreateToggle({
+    Name = "Toggle ESP",
+    CurrentValue = false,
+    Flag = "ESPX",
+    Callback = function(Value)
+            _G.ESPToggle = not _G.ESPToggle
+        end
+    end,
+})
+
+Players.PlayerAdded:Connect(function(player)
+    if getgenv().HBE then
+        AssignHitboxes(player)
+    end
+end)
