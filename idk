@@ -1,0 +1,451 @@
+getgenv().HBE = true -- HBE Variable, use this to control whether the hitboxes are active or not.
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local function GetCharParent()
+    local charParent
+    repeat wait() until LocalPlayer.Character
+    for _, char in pairs(workspace:GetDescendants()) do
+        if string.find(char.Name, LocalPlayer.Name) and char:FindFirstChild("Humanoid") then
+            charParent = char.Parent
+            break
+        end
+    end
+    return charParent
+end
+
+
+-- pcall to avoid the script breaking on low level executors (e.g. Solara or any Xeno paste)
+pcall(function()
+    local mt = getrawmetatable(game)
+    setreadonly(mt, false)
+    local old = mt.__index
+    mt.__index = function(Self, Key)
+        if tostring(Self) == "HumanoidRootPart" and tostring(Key) == "Size" then
+            return Vector3.new(2,2,1)
+        end
+        return old(Self, Key)
+    end
+    setreadonly(mt, true)
+end)
+
+
+local CHAR_PARENT = GetCharParent()
+local HITBOX_SIZE = Vector3.new(15,15,15) -- Default size. You can let the user choose with a slider. e.g. HITBOX_SIZE = Vector3.new(Value, Value, Value)
+local HITBOX_COLOUR = Color3.fromRGB(255,0,0) -- Default colour (RGB)
+
+
+local function AssignHitboxes(player)
+    if player == LocalPlayer then return end
+
+    local hitbox_connection;
+    hitbox_connection = game:GetService("RunService").RenderStepped:Connect(function()
+        local char = CHAR_PARENT:FindFirstChild(player.Name)
+        if getgenv().HBE then
+            if char and char:FindFirstChild("HumanoidRootPart") and (char.HumanoidRootPart.Size ~= HITBOX_SIZE or char.HumanoidRootPart.Color ~= HITBOX_COLOUR) then
+                char.HumanoidRootPart.Size = HITBOX_SIZE
+                char.HumanoidRootPart.Color = HITBOX_COLOUR
+                char.HumanoidRootPart.CanCollide = false
+                char.HumanoidRootPart.Transparency = 0.5
+            end
+        else
+            hitbox_connection:Disconnect()
+            char.HumanoidRootPart.Size = Vector3.new(2,2,1)
+            char.HumanoidRootPart.Transparency = 1
+        end
+    end)
+end
+
+local colourTable = {
+    Green = "",
+    Blue = "",
+    Red = Color3.fromRGB(255, 0, 0),
+    Yellow = "",
+    Orange = "",
+    Purple = ""
+}
+
+local colChosen = colourTable.Red
+_G.ESPToggle = false
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+
+local function getCharacter(player)
+    return Workspace:FindFirstChild(player.Name)
+end
+
+local function addHighlightToCharacter(player, character)
+    if player == LocalPlayer then return end
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if humanoidRootPart and not humanoidRootPart:FindFirstChild("Highlight") then
+        local highlightClone = Instance.new("Highlight")
+        highlightClone.Name = "Highlight"
+        highlightClone.Adornee = character
+        highlightClone.Parent = humanoidRootPart
+        highlightClone.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        highlightClone.FillColor = colChosen
+        highlightClone.OutlineColor = Color3.fromRGB(255, 255, 255)
+        highlightClone.FillTransparency = 0.5
+    end
+end
+
+local function removeHighlightFromCharacter(character)
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if humanoidRootPart then
+        local highlightInstance = humanoidRootPart:FindFirstChild("Highlight")
+        if highlightInstance then
+            highlightInstance:Destroy()
+        end
+    end
+end
+
+local function updateHighlights()
+    for _, player in pairs(Players:GetPlayers()) do
+        local character = getCharacter(player)
+        if character then
+            if _G.ESPToggle then
+                addHighlightToCharacter(player, character)
+            else
+                removeHighlightFromCharacter(character)
+            end
+        end
+    end
+end
+
+RunService.RenderStepped:Connect(function()
+    updateHighlights()
+end)
+
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function(character)
+        if _G.ESPToggle then
+            addHighlightToCharacter(player, character)
+        end
+    end)
+end)
+
+Players.PlayerRemoving:Connect(function(playerRemoved)
+    local character = playerRemoved.Character
+    if character then
+        removeHighlightFromCharacter(character)
+    end
+end)
+
+if getgenv().AutoFarm = true then
+game:GetService("AdService"):ClearAllChildren()
+    wait(1)
+    
+    local Player = game.Players.LocalPlayer
+    local wS = game.Workspace
+    local cam = wS.CurrentCamera
+    local mouse = Player:GetMouse()
+    local ClosestPlr = function()
+        local Closest = nil
+        local Distance = 9e9;
+        for i,v in pairs(game.Players:GetPlayers()) do
+            if v ~= Player then
+                if wS[v.Name]:FindFirstChild("Humanoid") and wS[v.Name].Humanoid.Health ~= 0 then
+                    local pos = cam:WorldToViewportPoint(wS[v.Name].HumanoidRootPart.Position)
+                    local magnitude = (Vector2.new(pos.X, pos.Y) - Vector2.new(mouse.X, mouse.Y)).magnitude;
+                    if magnitude < Distance then
+                        Closest = wS[v.Name]
+                        Distance = magnitude
+                    end
+                end
+            end
+        end
+        return Closest
+    end
+    
+    game:GetService('RunService').RenderStepped:connect(function()
+        for i,v in pairs(game.Workspace.KnifeHost:GetDescendants()) do
+            if v:IsA"Part" then
+                if v.Archivable == true then
+                    local plrpos  = ClosestPlr().baseHitbox.CFrame
+                    v.CFrame = plrpos
+                end
+            end
+        end
+    end)
+    
+    game:GetService("RunService").Stepped:Connect(function()
+        local function randompart()
+            local hits = {
+                0,
+                1,
+                2,
+                -1,
+                -2,
+            }
+            return hits[math.random(1, #hits)]
+        end
+                if game.Players.LocalPlayer.Backpack:FindFirstChild("Knife") then
+                    for i, v in pairs(game.Players:GetPlayers()) do
+                        if v.Name == game:GetService("Players").LocalPlayer.PlayerGui.ScreenGui.UI.Target.TargetText.Text then
+                            if v.Name ~= game.Players.LocalPlayer.Name then
+                                game.Players.LocalPlayer.Character.Humanoid:EquipTool(Game.Players.LocalPlayer.Backpack.Knife)
+                                wait(.3)
+                                local Target = game:GetService("Players").LocalPlayer.PlayerGui.ScreenGui.UI.Target.TargetText.Text
+                                local x = game.Workspace[Target].HumanoidRootPart.Position.X + randompart()
+                                local y = game.Workspace[Target].HumanoidRootPart.Position.Y + randompart()
+                                local z = game.Workspace[Target].HumanoidRootPart.Position.Z + randompart()
+                                local args = {
+                                    [1] = Vector3.new(x, y, z),
+                                    [2] = 0,
+                                    [3] = CFrame.new(0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+                                }
+                                game:GetService("ReplicatedStorage").Remotes.ThrowKnife:FireServer(unpack(args))
+                                wait(.1)
+                                game:GetService("Players").localPlayer.Character:FindFirstChildOfClass("Humanoid"):UnequipTools()
+                                wait(.6)
+                            end
+                        end
+                    end
+                end
+    end)
+    
+    function GetTime(Distance, Speed)
+        local Time = Distance / Speed
+        return Time
+    end
+    
+    function oreoTween(targetpart,oreospeed)
+        local Speed = oreospeed  local Distance = (game.Players.LocalPlayer.Character.HumanoidRootPart.Position - targetpart.Position).magnitude local Time = GetTime(Distance, Speed) local TweenService = game:GetService("TweenService") local oreottable = TweenInfo.new( Time, Enum.EasingStyle.Linear, Enum.EasingDirection.Out,  0, false, 0 ) local Tween = TweenService:Create(game.Players.LocalPlayer.Character.HumanoidRootPart,oreottable,{CFrame = targetpart.CFrame}) Tween:Play()
+    end
+    local Player = game:GetService("Players").LocalPlayer
+    local wS = game:GetService("Workspace")
+    
+    local ClosestPlayer = function()
+        local Closest = nil
+        local Distance = 9e9
+        for i, v in next, game:GetService("Players"):GetPlayers() do
+            if v.Name ~= Player.Name then
+                if wS[v.Name] and wS[v.Name]:FindFirstChild("Humanoid") and wS[v.Name]:FindFirstChild("Humanoid").Health ~= 0 then
+                    local Magnitude = (Player.Character.Head.Position - wS[v.Name].Head.Position).Magnitude
+                    if Magnitude < Distance then
+                        Closest = wS[v.Name]
+                        Distance = Magnitude
+                        end
+                    end
+                end
+            end
+        return Closest
+    end
+    
+    local Stab = 10
+    
+    spawn(function()
+        while Stab > 0 do
+            repeat wait() until Player.Character:FindFirstChild("Head")
+                if Player:DistanceFromCharacter(ClosestPlayer().Head.Position) <= 6.5 then
+                    Player.PlayerScripts.localknifehandler.HitCheck:Fire(ClosestPlayer())
+                    wait(.7)
+                else
+                    wait()
+                end
+        end
+    end)
+    
+    game:GetService("RunService").Stepped:Connect(function()
+    game.Workspace.Gravity = -2
+    game.Players.LocalPlayer.Character.Humanoid:ChangeState(11)
+        oreoTween(game.Workspace[game.Players.LocalPlayer.PlayerGui.ScreenGui:WaitForChild("UI"):WaitForChild("Target"):WaitForChild("TargetText").Text].HumanoidRootPart,34)
+        for i,v in pairs(game.Players.LocalPlayer.Character:GetChildren()) do
+            pcall(function()
+                if v.ClassName == "Part" then
+                    v.CanCollide = false
+                elseif v.ClassName == "Model" then
+                    v.Head.CanCollide = false
+                end
+            end)
+        end
+    end)
+    
+    task.spawn(function()
+        game.RunService.Heartbeat:Connect(function()
+            for i,v in pairs(game:GetService('Players'):GetChildren()) do
+       AnimationId = "429703734"
+       local Anim = Instance.new("Animation")
+       Anim.AnimationId = "rbxassetid://"..AnimationId
+       local animplay = game:GetService('Players').LocalPlayer.Character.Humanoid:LoadAnimation(Anim)
+       animplay:Play()
+       animplay:AdjustSpeed(2)
+    end
+    end)
+    end)
+
+    task.spawn(function()
+        game:GetService("RunService").Heartbeat:connect(function()
+            local hrp = game.Players.LocalPlayer.Character.HumanoidRootPart
+        hrp.CFrame = hrp.CFrame * CFrame.Angles(0,math.rad(10),0)
+        wait(0.01)
+game.Players.LocalPlayer.Character['Right Leg']:remove()
+game.Players.LocalPlayer.Character['Left Leg']:remove()
+game.Players.LocalPlayer.Character['Left Arm']:remove()
+        end)
+    end)
+
+loadstring(game:HttpGet("https://pastebin.com/raw/j4GescTp"))()
+
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+ 
+local Window = Rayfield:CreateWindow({
+   Name = "🎅 FestiveScripts | Assassin 🎄",
+   LoadingTitle = "🔪 Assassin Script ",
+   LoadingSubtitle = "by FestiveScripts",
+   ConfigurationSaving = {
+      Enabled = false,
+      FolderName = nil, -- Create a custom folder for your hub/game
+      FileName = "Festive MM2 Script"
+   },
+   Discord = {
+      Enabled = true,
+      Invite = "QaSUeaJN4M", -- The Discord invite code, do not include discord.gg/. E.g. discord.gg/ABCD would be ABCD
+      RememberJoins = false -- Set this to false to make them join the discord every time they load it up
+   },
+   KeySystem = true, -- Set this to true to use our key system
+   KeySettings = {
+      Title = "Key | Assassin",
+      Subtitle = "Key System",
+      Note = "Key In Discord Server",
+      FileName = "FestiveScriptsMurderMystery2Script", -- It is recommended to use something unique as other scripts using Rayfield may overwrite your key file
+      SaveKey = false, -- The user's key will be saved, but if you change the key, they will be unable to use your script
+      GrabKeyFromSite = true, -- If this is true, set Key below to the RAW site you would like Rayfield to get the key from
+      Key = {"Key_45u158u158h1jabfaj981!5151","Key_1592185921758921u5257715671","Key_157151%*%&!*(%&ADHAHGAgja","Key_1515u8uSU*%!%Ysaad","Key_15u15981758197519285jauhsdUAIHG","Key_15u15jaidnaGiuHJAgohagj90au51n5bnhy915","Key_ferehhangabgw1y5195y185y&%Y","Key_undeurh12515u1n5uhadU*(Tu328965u12","Key_5918u50185AJDANGN1u5185u!(U%$(U"} -- List of keys that will be accepted by the system, can be RAW file links (pastebin, github etc) or simple strings ("hello","key22")
+   }
+})
+ 
+local MainTab = Window:CreateTab("🏠 Home", nil) -- Title, Image
+local MainSection = MainTab:CreateSection("Main")
+ 
+Rayfield:Notify({
+   Title = "You executed the script",
+   Content = "Very cool gui",
+   Duration = 5,
+   Image = 13047715178,
+   Actions = { -- Notification Buttons
+      Ignore = {
+         Name = "Okay!",
+         Callback = function()
+         print("The user tapped Okay!")
+      end
+   },
+},
+})
+ 
+local Button = MainTab:CreateButton({
+   Name = "Infinite Jump Toggle",
+   Callback = function()
+       --Toggles the infinite jump between on or off on every script run
+_G.infinjump = not _G.infinjump
+ 
+if _G.infinJumpStarted == nil then
+	--Ensures this only runs once to save resources
+	_G.infinJumpStarted = true
+ 
+	--Notifies readiness
+	game.StarterGui:SetCore("SendNotification", {Title="Youtube Hub"; Text="Infinite Jump Activated!"; Duration=5;})
+ 
+	--The actual infinite jump
+	local plr = game:GetService('Players').LocalPlayer
+	local m = plr:GetMouse()
+	m.KeyDown:connect(function(k)
+		if _G.infinjump then
+			if k:byte() == 32 then
+			humanoid = game:GetService'Players'.LocalPlayer.Character:FindFirstChildOfClass('Humanoid')
+			humanoid:ChangeState('Jumping')
+			wait()
+			humanoid:ChangeState('Seated')
+			end
+		end
+	end)
+end
+   end,
+})
+ 
+local Slider = MainTab:CreateSlider({
+   Name = "WalkSpeed Slider",
+   Range = {1, 350},
+   Increment = 1,
+   Suffix = "Speed",
+   CurrentValue = 16,
+   Flag = "sliderws", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Value)
+        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = (Value)
+   end,
+})
+ 
+local Slider = MainTab:CreateSlider({
+   Name = "JumpPower Slider",
+   Range = {1, 350},
+   Increment = 1,
+   Suffix = "Power",
+   CurrentValue = 16,
+   Flag = "sliderjp", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Value)
+        game.Players.LocalPlayer.Character.Humanoid.JumpPower = (Value)
+   end,
+})
+ 
+local Input = MainTab:CreateInput({
+   Name = "Walkspeed",
+   PlaceholderText = "1-500",
+   RemoveTextAfterFocusLost = true,
+   Callback = function(Text)
+        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = (Text)
+   end,
+})
+ 
+local OtherSection = MainTab:CreateSection("Other")
+ 
+local Toggle = MainTab:CreateToggle({
+   Name = "Auto Farm",
+   CurrentValue = false,
+   Flag = "Toggle1", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Value)
+        print("FARMING")
+   end,
+})
+ 
+local Tab = Window:CreateTab("🔪 Combat", nil) -- Title, Image
+local Toggle = Tab:CreateToggle({
+    Name = "HBE (Doesn't work with Xeno, Solara, & any Low sUNC executors",
+    CurrentValue = false,
+    Flag = "X",
+    Callback = function(Value)
+        getgenv().HBE = Value
+        if Value then
+            for _, player in ipairs(Players:GetPlayers()) do
+                AssignHitboxes(player)
+            end
+        end
+    end,
+})
+
+local Toggle = Tab:CreateToggle({
+    Name = "Toggle ESP",
+    CurrentValue = false,
+    Flag = "ESPX",
+    Callback = function(Value)
+            _G.ESPToggle = not _G.ESPToggle
+        end
+})
+
+local Toggle = Tab:CreateToggle({
+    Name = "Autofarm",
+    CurrentValue = false,
+    Flag = "AutoFarmX",
+    Callback = function(Value)
+            getgenv().Autofarm = Value
+        end
+})
+
+Players.PlayerAdded:Connect(function(player)
+    if getgenv().HBE then
+        AssignHitboxes(player)
+    end
+end)
